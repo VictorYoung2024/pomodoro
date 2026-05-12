@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>番茄钟</title>
+<style>
+  :root {
+    --work: #e74c3c;
+    --short-break: #2ecc71;
+    --long-break: #3498db;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    display: flex; justify-content: center; align-items: center;
+    min-height: 100vh; background: #1a1a2e;
+    transition: background 0.4s;
+  }
+  .container { text-align: center; }
+  .timer-ring {
+    position: relative; width: 300px; height: 300px; margin: 0 auto 30px;
+  }
+  svg { transform: rotate(-90deg); }
+  .bg-circle { fill: none; stroke: #2d2d44; stroke-width: 8; }
+  .progress-circle {
+    fill: none; stroke: var(--work); stroke-width: 8; stroke-linecap: round;
+    stroke-dasharray: 880; stroke-dashoffset: 0;
+    transition: stroke-dashoffset 0.3s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.4s;
+  }
+  .time-display {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    font-size: 64px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums;
+  }
+  .mode-tabs {
+    display: flex; gap: 8px; justify-content: center; margin-bottom: 24px;
+  }
+  .mode-tab {
+    padding: 8px 18px; border-radius: 20px; border: none; cursor: pointer;
+    font-size: 14px; font-weight: 500; background: #2d2d44; color: #aaa;
+    transition: all 0.2s;
+  }
+  .mode-tab.active { background: var(--work); color: #fff; }
+  .controls { display: flex; gap: 12px; justify-content: center; }
+  .btn {
+    width: 52px; height: 52px; border-radius: 50%; border: none;
+    cursor: pointer; font-size: 20px; background: #2d2d44; color: #fff;
+    transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+  }
+  .btn:hover { background: #3d3d5c; }
+  .btn-main { width: 60px; height: 60px; font-size: 24px; background: var(--work); }
+  .btn-main:hover { filter: brightness(1.15); }
+  .session-count { color: #666; font-size: 13px; margin-top: 24px; }
+  .session-count span { color: #aaa; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="timer-ring">
+    <svg width="300" height="300" viewBox="0 0 300 300">
+      <circle class="bg-circle" cx="150" cy="150" r="140"/>
+      <circle class="progress-circle" id="progress" cx="150" cy="150" r="140"
+              stroke-dasharray="880" stroke-dashoffset="0"/>
+    </svg>
+    <div class="time-display" id="time">25:00</div>
+  </div>
+
+  <div class="mode-tabs">
+    <button class="mode-tab active" data-mode="work" data-min="25">专注</button>
+    <button class="mode-tab" data-mode="short" data-min="5">短休</button>
+    <button class="mode-tab" data-mode="long" data-min="15">长休</button>
+  </div>
+
+  <div class="controls">
+    <button class="btn" id="reset" title="重置">↺</button>
+    <button class="btn btn-main" id="toggle" title="开始">▶</button>
+    <button class="btn" id="skip" title="跳过">⏭</button>
+  </div>
+
+  <div class="session-count" id="counter">今日完成：<span>0</span> 个番茄</div>
+</div>
+
+<audio id="alarm" preload="auto">
+  <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACAf39/f4B/f3+AgH9/f3+Af4B/gH+Af4B/gH+Af39/gH+Af4B/gH+Af39/f3+Af39/gH+Af39/f39/f39/f39/f39/f39/f39/gH+Af39/gH+Af4B/f3+Af39/f39/gH9/f4B/f3+Af39/f4B/f3+Af39/f39/f39/f39/f39/f39/f39/f4B/f3+Af39/gH+Af4B/gH+Af4B/gH+Af4B/gH+Af4B/gH+Af4B/gH+Af39/gH+Af4B/gH+Af39/f4B/f3+Af39/gH+Af4B/f3+Af39/f39/f39/f39/f39/f39/f39/gH9/f4B/f39/f39/f39/f4B/f3+Af4B/gH+Af4B/gH+Af4B/gH+Af4B/gH+Af4B/f3+Af39/f4B/f3+Af39/f4B/f3+Af39/gH+Af4B/f3+Af39/f39/f39/f4B/f3+Af39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f4B/f39/f39/f39/f39/f4B/f3+Af39/f4B/f3+Af4B/f3+Af39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f4B/f39/f4B/f39/f4B/f3+Af4B/f3+Af4B/gH+Af4B/gH+Af39/f39/f39/f39/f39/f39/f39/f39/f4B/f3+Af39/f4B/f3+Af39/f4B/f4B/f3+Af39/f4B/f3+Af39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f4B/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f4B/f39/f39/f39/f39/f4B/f39/f39/f4B/f4B/f39/f39/f4B/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f4B/f39/f39/f4B/f39/f4B/gH+Af39/f39/f39/f34A=" type="audio/wav">
+</audio>
+
+<script>
+const CIRCUMFERENCE = 2 * Math.PI * 140; // ~880
+const progress = document.getElementById('progress');
+const timeDisplay = document.getElementById('time');
+const toggleBtn = document.getElementById('toggle');
+const alarm = document.getElementById('alarm');
+const counter = document.querySelector('.session-count span');
+
+let totalSeconds = 25 * 60;
+let remaining = totalSeconds;
+let interval = null;
+let currentMode = 'work';
+let sessions = 0;
+
+const modeConfig = {
+  work: { minutes: 25, color: '#e74c3c' },
+  short: { minutes: 5, color: '#2ecc71' },
+  long: { minutes: 15, color: '#3498db' }
+};
+
+function formatTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+}
+
+function updateDisplay() {
+  timeDisplay.textContent = formatTime(remaining);
+  const offset = CIRCUMFERENCE * (1 - remaining / totalSeconds);
+  progress.style.strokeDashoffset = offset;
+  document.title = `${formatTime(remaining)} - ${currentMode === 'work' ? '专注' : '休息'}`;
+}
+
+function setMode(mode) {
+  currentMode = mode;
+  const cfg = modeConfig[mode];
+  totalSeconds = cfg.minutes * 60;
+  remaining = totalSeconds;
+  progress.style.stroke = cfg.color;
+  toggleBtn.style.background = cfg.color;
+  document.documentElement.style.setProperty('--work', cfg.color);
+  document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`[data-mode="${mode}"]`).classList.add('active');
+  stopTimer();
+  updateDisplay();
+}
+
+function stopTimer() {
+  clearInterval(interval);
+  interval = null;
+  toggleBtn.textContent = '▶';
+}
+
+function tick() {
+  remaining--;
+  if (remaining <= 0) {
+    stopTimer();
+    alarm.play();
+    if (currentMode === 'work') {
+      sessions++;
+      counter.textContent = sessions;
+    }
+    // Auto-switch: work → short break, breaks → work
+    setMode(currentMode === 'work' ? 'short' : 'work');
+    return;
+  }
+  updateDisplay();
+}
+
+function toggle() {
+  if (interval) {
+    stopTimer();
+  } else {
+    interval = setInterval(tick, 1000);
+    toggleBtn.textContent = '⏸';
+  }
+}
+
+function reset() {
+  stopTimer();
+  remaining = totalSeconds;
+  updateDisplay();
+}
+
+function skip() {
+  stopTimer();
+  const next = currentMode === 'work' ? 'short' : 'work';
+  setMode(next);
+}
+
+document.querySelectorAll('.mode-tab').forEach(tab => {
+  tab.addEventListener('click', () => setMode(tab.dataset.mode));
+});
+toggleBtn.addEventListener('click', toggle);
+document.getElementById('reset').addEventListener('click', reset);
+document.getElementById('skip').addEventListener('click', skip);
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space') { e.preventDefault(); toggle(); }
+  if (e.code === 'KeyR') reset();
+  if (e.code === 'KeyS') skip();
+});
+
+updateDisplay();
+</script>
+</body>
+</html>
