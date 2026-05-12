@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>我们的电话时光</title>
 <style>
   :root {
@@ -24,6 +24,7 @@
     min-height: 100vh;
     display: flex; justify-content: center;
     padding: 20px;
+    -webkit-tap-highlight-color: transparent;
   }
   .app { width: 100%; max-width: 480px; }
 
@@ -78,7 +79,7 @@
   }
 
   .edit-panel {
-    background: var(--card); border-radius: 16px; padding: 20px;
+    background: var(--card); border-radius: 16px; padding: 20px 16px;
     margin-top: 16px; text-align: center;
   }
   .edit-panel h3 { font-size: 14px; color: var(--muted); margin-bottom: 12px; }
@@ -95,23 +96,44 @@
   .type-btn.video.active { border-color: var(--video); color: var(--video); background: #2a1a0d; }
   .type-btn .icon { font-size: 22px; display: block; margin-bottom: 4px; }
 
-  .time-range { display: flex; gap: 10px; justify-content: center; align-items: center; }
-  .time-field { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-  .time-field label { font-size: 11px; color: var(--muted); }
-  .time-field input[type="time"] {
-    background: #1a0a2a; color: #fff; border: 1px solid #4a2060;
-    padding: 8px 12px; border-radius: 8px; font-size: 18px; font-family: inherit;
-    width: 130px; text-align: center;
+  /* Scroll wheel time picker */
+  .time-picker { margin-bottom: 6px; }
+  .time-tabs { display: flex; gap: 6px; justify-content: center; margin-bottom: 12px; }
+  .time-tab {
+    padding: 6px 20px; border-radius: 14px; border: 1px solid #4a2060;
+    background: transparent; color: var(--muted); cursor: pointer;
+    font-size: 13px; font-weight: 500; transition: all 0.2s;
   }
-  .time-field input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(1); }
-  .time-arrow { color: var(--muted); font-size: 14px; padding-top: 18px; }
+  .time-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 
-  .duration-input { display: flex; gap: 6px; justify-content: center; align-items: center; }
-  .duration-input label { font-size: 13px; color: var(--muted); }
-  .duration-input select {
-    background: #1a0a2a; color: #fff; border: 1px solid #4a2060;
-    padding: 6px 10px; border-radius: 8px; font-size: 15px; cursor: pointer;
+  .wheels-row { display: flex; gap: 16px; justify-content: center; align-items: flex-start; margin-bottom: 8px; }
+  .wheel-col { display: flex; flex-direction: column; align-items: center; }
+  .wheel-col-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .wheel {
+    width: 72px; height: 160px; overflow-y: auto;
+    scroll-snap-type: y mandatory;
+    -webkit-overflow-scrolling: touch;
+    position: relative; border-radius: 10px;
+    background: #12061a;
   }
+  .wheel::-webkit-scrollbar { display: none; }
+  .wheel-inner { padding: 60px 0; }
+  .wheel-item {
+    height: 40px; display: flex; align-items: center; justify-content: center;
+    font-size: 17px; color: #604070; scroll-snap-align: center;
+    transition: color 0.15s, font-size 0.15s; user-select: none;
+    font-variant-numeric: tabular-nums;
+  }
+  .wheel-item.active { color: #fff; font-size: 22px; font-weight: 700; }
+
+  .wheel-highlight {
+    position: absolute; top: 50%; left: 4px; right: 4px; height: 40px;
+    transform: translateY(-50%); border-top: 1px solid #4a2060;
+    border-bottom: 1px solid #4a2060; pointer-events: none;
+    border-radius: 4px;
+  }
+
+  .duration-display { font-size: 14px; color: var(--accent); font-weight: 600; margin-bottom: 4px; }
 
   .keyword-input {
     width: 100%; background: #1a0a2a; color: #fff; border: 1px solid #4a2060;
@@ -187,24 +209,28 @@
       </button>
     </div>
 
-    <div class="edit-section time-range">
-      <div class="time-field">
-        <label>开始时间</label>
-        <input type="time" id="start-time">
+    <div class="edit-section time-picker">
+      <div class="time-tabs">
+        <button class="time-tab active" data-tab="start">开始时间</button>
+        <button class="time-tab" data-tab="end">结束时间</button>
       </div>
-      <span class="time-arrow">→</span>
-      <div class="time-field">
-        <label>结束时间</label>
-        <input type="time" id="end-time">
+      <div class="wheels-row" id="wheels-row">
+        <div class="wheel-col">
+          <div class="wheel-col-label">时</div>
+          <div class="wheel" id="wh" style="position:relative">
+            <div class="wheel-highlight"></div>
+            <div class="wheel-inner" id="wh-inner"></div>
+          </div>
+        </div>
+        <div class="wheel-col">
+          <div class="wheel-col-label">分</div>
+          <div class="wheel" id="wm" style="position:relative">
+            <div class="wheel-highlight"></div>
+            <div class="wheel-inner" id="wm-inner"></div>
+          </div>
+        </div>
       </div>
-    </div>
-
-    <div class="edit-section duration-input">
-      <label>时长</label>
-      <select id="hours"></select>
-      <label>h</label>
-      <select id="minutes"></select>
-      <label>min</label>
+      <div class="duration-display" id="duration-display">时长：0h 0min</div>
     </div>
 
     <div class="edit-section">
@@ -227,11 +253,17 @@
 
 <script>
 const STORAGE_KEY = 'call-records';
-let currentYear, currentMonth, selectedDay, selectedType, selectedPeriod;
+const ITEM_H = 40;
+let currentYear, currentMonth, selectedDay, selectedType;
 let records = {};
-let timeChanging = false;
 let periodActive = false;
+let activeTimeTab = 'start';
+// current wheel values
+let startH = 0, startM = 0, endH = 0, endM = 0;
+let wheelScrollTimers = { wh: null, wm: null };
+let wheelChanging = false;
 
+// ---- data layer ----
 function loadRecords() {
   try { records = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
   catch { records = {}; }
@@ -274,28 +306,6 @@ function formatDuration(h, m) {
   return `${h}h${m}分`;
 }
 
-function timesToDuration(start, end) {
-  if (!start || !end) return null;
-  let [sh, sm] = start.split(':').map(Number);
-  let [eh, em] = end.split(':').map(Number);
-  let startMin = sh * 60 + sm;
-  let endMin = eh * 60 + em;
-  if (endMin <= startMin) endMin += 24 * 60;
-  const totalMin = endMin - startMin;
-  return { hours: Math.floor(totalMin / 60), minutes: totalMin % 60 };
-}
-
-function durationToEndTime(start, hours, minutes) {
-  if (!start) return '';
-  let [sh, sm] = start.split(':').map(Number);
-  let totalMin = sh * 60 + sm + (hours || 0) * 60 + (minutes || 0);
-  totalMin %= (24 * 60);
-  const h = Math.floor(totalMin / 60);
-  const m = totalMin % 60;
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-}
-
-// Period cycle helpers
 function getPeriodDays(y, m) {
   const key = monthKey(y, m);
   const monthData = records[key] || {};
@@ -308,64 +318,13 @@ function getPeriodDays(y, m) {
 }
 
 function getRecentPeriodStart() {
-  // Find the most recent period start day, scanning from current month backwards
   let y = currentYear, m = currentMonth;
   for (let i = 0; i < 6; i++) {
     const days = getPeriodDays(y, m);
-    if (days.length > 0) {
-      // Find first period day of a consecutive streak
-      // Actually, just find the first period day in that month as an estimate
-      return { year: y, month: m, day: days[0] };
-    }
-    m--;
-    if (m < 0) { m = 11; y--; }
+    if (days.length > 0) return { year: y, month: m, day: days[0] };
+    m--; if (m < 0) { m = 11; y--; }
   }
   return null;
-}
-
-function calcCycleHint() {
-  if (!selectedDay) { document.getElementById('cycle-hint').textContent = ''; return; }
-
-  const data = dayData(selectedDay.year, selectedDay.month, selectedDay.day);
-  const isPeriod = !!(data && data.period);
-
-  if (!isPeriod && !periodActive) {
-    // If not a period day and toggle off, find nearest period for reference
-    const recent = getRecentPeriodStart();
-    if (recent) {
-      const recentDate = new Date(recent.year, recent.month, recent.day);
-      const selDate = new Date(selectedDay.year, selectedDay.month, selectedDay.day);
-      const diffDays = Math.round((selDate - recentDate) / (1000 * 60 * 60 * 24));
-      if (diffDays >= 0 && diffDays <= 35) {
-        document.getElementById('cycle-hint').textContent = `距上次经期第 ${diffDays + 1} 天`;
-        return;
-      }
-    }
-    document.getElementById('cycle-hint').textContent = '';
-  } else if (periodActive) {
-    // Count consecutive period days in current month
-    const periodDays = getPeriodDays(selectedDay.year, selectedDay.month);
-    // Count the current selected day if it's toggled on but not yet saved
-    let count = periodDays.length;
-    if (!periodDays.includes(selectedDay.day)) count++;
-
-    // Find streaks that include this day
-    const allDays = [...new Set([...periodDays, selectedDay.day])].sort((a, b) => a - b);
-    const idx = allDays.indexOf(selectedDay.day);
-    let streakStart = idx, streakEnd = idx;
-    while (streakStart > 0 && allDays[streakStart - 1] === allDays[streakStart] - 1) streakStart--;
-    while (streakEnd < allDays.length - 1 && allDays[streakEnd + 1] === allDays[streakEnd] + 1) streakEnd++;
-    const streakLen = streakEnd - streakStart + 1;
-
-    if (streakLen === 1) {
-      document.getElementById('cycle-hint').textContent = `经期第 1 天`;
-    } else {
-      const dayInStreak = idx - streakStart + 1;
-      document.getElementById('cycle-hint').textContent = `经期第 ${dayInStreak} 天（共 ${streakLen} 天）`;
-    }
-  } else {
-    document.getElementById('cycle-hint').textContent = '';
-  }
 }
 
 function calcMonthStats(y, m) {
@@ -381,6 +340,109 @@ function calcMonthStats(y, m) {
   return { days, totalHours: (totalMin / 60).toFixed(1), videoCount, totalPoints, periodCount };
 }
 
+// ---- wheel picker ----
+function buildWheelItems(inner, count, padZero) {
+  inner.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    const div = document.createElement('div');
+    div.className = 'wheel-item';
+    div.textContent = padZero ? String(i).padStart(2, '0') : i;
+    div.dataset.value = i;
+    inner.appendChild(div);
+  }
+}
+
+function scrollWheelTo(wheelId, value) {
+  const wheel = document.getElementById(wheelId);
+  wheel.scrollTop = value * ITEM_H;
+  updateWheelActive(wheelId);
+}
+
+function updateWheelActive(wheelId) {
+  const wheel = document.getElementById(wheelId);
+  const idx = Math.round(wheel.scrollTop / ITEM_H);
+  const items = wheel.querySelectorAll('.wheel-item');
+  items.forEach((item, i) => {
+    item.classList.toggle('active', i === idx);
+  });
+}
+
+function getWheelValue(wheelId) {
+  const wheel = document.getElementById(wheelId);
+  return Math.round(wheel.scrollTop / ITEM_H);
+}
+
+function onWheelScroll(wheelId) {
+  // Debounce: update active class during scroll, fire calculation on stop
+  updateWheelActive(wheelId);
+  clearTimeout(wheelScrollTimers[wheelId]);
+  wheelScrollTimers[wheelId] = setTimeout(() => {
+    // Snap to nearest item
+    const wheel = document.getElementById(wheelId);
+    const idx = Math.round(wheel.scrollTop / ITEM_H);
+    wheel.scrollTo({ top: idx * ITEM_H, behavior: 'smooth' });
+    updateWheelState();
+  }, 150);
+}
+
+function updateWheelState() {
+  if (wheelChanging) return;
+  startH = getWheelValue('wh');
+  startM = getWheelValue('wm');
+  if (activeTimeTab === 'end') {
+    endH = startH; endM = startM;
+    // restore start values
+    startH = getWheelValue('wh'); // will be overwritten below
+  }
+  // Re-read both
+  const h = getWheelValue('wh');
+  const m = getWheelValue('wm');
+  if (activeTimeTab === 'start') { startH = h; startM = m; }
+  else { endH = h; endM = m; }
+
+  updateDurationDisplay();
+}
+
+function updateDurationDisplay() {
+  let startMin = startH * 60 + startM;
+  let endMin = endH * 60 + endM;
+  if (endMin <= startMin) endMin += 24 * 60;
+  const diff = endMin - startMin;
+  const dh = Math.floor(diff / 60);
+  const dm = diff % 60;
+  const durStr = dh === 0 && dm === 0 ? '0min' : formatDuration(dh, dm);
+  document.getElementById('duration-display').textContent = `时长：${durStr}`;
+}
+
+function switchTimeTab(tab) {
+  activeTimeTab = tab;
+  document.querySelectorAll('.time-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  wheelChanging = true;
+  if (tab === 'start') {
+    scrollWheelTo('wh', startH);
+    scrollWheelTo('wm', startM);
+  } else {
+    scrollWheelTo('wh', endH);
+    scrollWheelTo('wm', endM);
+  }
+  wheelChanging = false;
+}
+
+function setWheelValues(sh, sm, eh, em) {
+  startH = sh; startM = sm; endH = eh; endM = em;
+  wheelChanging = true;
+  if (activeTimeTab === 'start') {
+    scrollWheelTo('wh', sh);
+    scrollWheelTo('wm', sm);
+  } else {
+    scrollWheelTo('wh', eh);
+    scrollWheelTo('wm', em);
+  }
+  wheelChanging = false;
+  updateDurationDisplay();
+}
+
+// ---- calendar ----
 function renderCalendar(y, m) {
   const grid = document.getElementById('calendar');
   const today = new Date();
@@ -388,15 +450,12 @@ function renderCalendar(y, m) {
   const daysInMonth = new Date(y, m + 1, 0).getDate();
 
   grid.innerHTML = '';
-  for (let i = 0; i < firstDay; i++) {
-    grid.appendChild(createDayEl(null));
-  }
+  for (let i = 0; i < firstDay; i++) grid.appendChild(createDayEl(null));
   for (let d = 1; d <= daysInMonth; d++) {
     const data = dayData(y, m, d);
     const isToday = y === today.getFullYear() && m === today.getMonth() && d === today.getDate();
     grid.appendChild(createDayEl(d, data, isToday));
   }
-
   document.getElementById('month-label').textContent = `${y}年${m + 1}月`;
   updateStats(y, m);
   updateEditPanel();
@@ -405,7 +464,6 @@ function renderCalendar(y, m) {
 function createDayEl(day, data, isToday) {
   const div = document.createElement('div');
   if (day === null) { div.className = 'day empty'; return div; }
-
   let cls = 'day';
   if (isToday) cls += ' today';
   if (data) {
@@ -413,30 +471,23 @@ function createDayEl(day, data, isToday) {
     if (data.period) cls += ' period';
   }
   div.className = cls;
-
   let html = `<div class="date">${day}</div>`;
   if (data) {
-    const pts = lovePoints(data);
     const dur = formatDuration(data.hours, data.minutes);
     if (dur) {
       html += `<div class="duration">${data.type === 'video' ? '📹' : '📞'} ${dur}</div>`;
-      html += `<div class="hearts">${loveHearts(pts)}</div>`;
+      html += `<div class="hearts">${loveHearts(lovePoints(data))}</div>`;
     }
     if (data.keywords) {
       const kw = data.keywords.split(/[,，\s]+/).filter(Boolean).slice(0, 2).join('·');
       html += `<div class="keywords">${kw}</div>`;
     }
-    if (data.period) {
-      html += `<div class="period-dot"></div>`;
-    }
+    if (data.period) html += `<div class="period-dot"></div>`;
   }
-
   div.innerHTML = html;
-
   if (day === selectedDay && currentYear === selectedDay?.year && currentMonth === selectedDay?.month) {
     div.classList.add('selected');
   }
-
   div.addEventListener('click', () => selectDay(day));
   return div;
 }
@@ -451,17 +502,12 @@ function selectDay(day) {
   document.querySelectorAll('.day:not(.empty)').forEach(d => {
     if (parseInt(d.querySelector('.date')?.textContent) === day) d.classList.add('selected');
   });
-
   updateEditPanel();
 }
 
 function updateEditPanel() {
   const title = document.getElementById('edit-title');
   const btnDelete = document.getElementById('btn-delete');
-  const hoursSel = document.getElementById('hours');
-  const minutesSel = document.getElementById('minutes');
-  const startInput = document.getElementById('start-time');
-  const endInput = document.getElementById('end-time');
   const keywordsInput = document.getElementById('keywords');
   const periodToggle = document.getElementById('period-toggle');
   const typeBtns = document.querySelectorAll('.type-btn');
@@ -479,25 +525,18 @@ function updateEditPanel() {
   title.textContent = `${selectedDay.month + 1}月${selectedDay.day}日`;
   btnDelete.disabled = !data;
 
-  if (hoursSel.options.length === 0) {
-    for (let i = 0; i <= 24; i++) hoursSel.add(new Option(i, i));
-    for (let i = 0; i <= 59; i++) minutesSel.add(new Option(String(i).padStart(2, '0'), i));
-  }
+  // Set wheel values
+  const sh = data && data.startTime ? parseInt(data.startTime.split(':')[0]) : 0;
+  const sm = data && data.startTime ? parseInt(data.startTime.split(':')[1]) : 0;
+  const eh = data && data.endTime ? parseInt(data.endTime.split(':')[0]) : 0;
+  const em = data && data.endTime ? parseInt(data.endTime.split(':')[1]) : 0;
+  setWheelValues(sh, sm, eh, em);
 
-  timeChanging = true;
-  hoursSel.value = data ? (data.hours || 0) : 0;
-  minutesSel.value = data ? (data.minutes || 0) : 0;
-  startInput.value = data ? (data.startTime || '') : '';
-  endInput.value = data ? (data.endTime || '') : '';
   keywordsInput.value = data ? (data.keywords || '') : '';
   periodActive = !!(data && data.period);
   periodToggle.classList.toggle('active', periodActive);
-  timeChanging = false;
 
-  typeBtns.forEach(b => {
-    b.classList.toggle('active', b.dataset.type === selectedType);
-  });
-
+  typeBtns.forEach(b => b.classList.toggle('active', b.dataset.type === selectedType));
   calcCycleHint();
 }
 
@@ -506,7 +545,6 @@ function updateStats(y, m) {
   document.getElementById('stat-days').textContent = stats.days;
   document.getElementById('stat-hours').textContent = stats.totalHours + 'h';
   document.getElementById('stat-video').textContent = stats.videoCount;
-
   const pts = stats.totalPoints;
   document.getElementById('love-meter').textContent = loveHearts(pts);
   document.getElementById('love-score').textContent = stats.periodCount > 0
@@ -514,46 +552,61 @@ function updateStats(y, m) {
     : `本月爱情度：${pts} 点`;
 }
 
-function onTimesChanged() {
-  if (timeChanging) return;
-  const start = document.getElementById('start-time').value;
-  const end = document.getElementById('end-time').value;
-  if (!start || !end) return;
-  const dur = timesToDuration(start, end);
-  if (dur) {
-    timeChanging = true;
-    document.getElementById('hours').value = dur.hours;
-    document.getElementById('minutes').value = dur.minutes;
-    timeChanging = false;
-  }
-}
+function calcCycleHint() {
+  const hintEl = document.getElementById('cycle-hint');
+  if (!selectedDay) { hintEl.textContent = ''; return; }
 
-function onDurationChanged() {
-  if (timeChanging) return;
-  const start = document.getElementById('start-time').value;
-  if (!start) return;
-  const h = parseInt(document.getElementById('hours').value) || 0;
-  const m = parseInt(document.getElementById('minutes').value) || 0;
-  timeChanging = true;
-  document.getElementById('end-time').value = durationToEndTime(start, h, m);
-  timeChanging = false;
+  const data = dayData(selectedDay.year, selectedDay.month, selectedDay.day);
+  const isPeriod = !!(data && data.period);
+
+  if (!isPeriod && !periodActive) {
+    const recent = getRecentPeriodStart();
+    if (recent) {
+      const recentDate = new Date(recent.year, recent.month, recent.day);
+      const selDate = new Date(selectedDay.year, selectedDay.month, selectedDay.day);
+      const diffDays = Math.round((selDate - recentDate) / (1000 * 60 * 60 * 24));
+      if (diffDays >= 0 && diffDays <= 35) {
+        hintEl.textContent = `距上次经期第 ${diffDays + 1} 天`;
+        return;
+      }
+    }
+    hintEl.textContent = '';
+  } else if (periodActive) {
+    const periodDays = getPeriodDays(selectedDay.year, selectedDay.month);
+    const allDays = [...new Set([...periodDays, selectedDay.day])].sort((a, b) => a - b);
+    const idx = allDays.indexOf(selectedDay.day);
+    let streakStart = idx, streakEnd = idx;
+    while (streakStart > 0 && allDays[streakStart - 1] === allDays[streakStart] - 1) streakStart--;
+    while (streakEnd < allDays.length - 1 && allDays[streakEnd + 1] === allDays[streakEnd] + 1) streakEnd++;
+    const streakLen = streakEnd - streakStart + 1;
+    const dayInStreak = idx - streakStart + 1;
+    hintEl.textContent = streakLen === 1 ? '经期第 1 天' : `经期第 ${dayInStreak} 天（共 ${streakLen} 天）`;
+  } else {
+    hintEl.textContent = '';
+  }
 }
 
 function saveEntry() {
   if (!selectedDay) return;
-  const h = parseInt(document.getElementById('hours').value) || 0;
-  const m = parseInt(document.getElementById('minutes').value) || 0;
-  const startTime = document.getElementById('start-time').value;
-  const endTime = document.getElementById('end-time').value;
+  const h = (activeTimeTab === 'start' ? endH : startH);
+  // Calculate actual duration from start/end
+  let sm = startH * 60 + startM;
+  let em = endH * 60 + endM;
+  if (em <= sm) em += 24 * 60;
+  const diff = em - sm;
+  const hours = Math.floor(diff / 60);
+  const minutes = diff % 60;
+
+  const startTime = `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`;
+  const endTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
   const keywords = document.getElementById('keywords').value.trim();
   const period = periodActive;
 
-  // Only delete if truly nothing
-  if (h === 0 && m === 0 && !keywords && !period) {
+  if (hours === 0 && minutes === 0 && !keywords && !period) {
     setDayData(selectedDay.year, selectedDay.month, selectedDay.day, null);
   } else {
     setDayData(selectedDay.year, selectedDay.month, selectedDay.day, {
-      type: selectedType, hours: h, minutes: m, startTime, endTime, keywords, period
+      type: selectedType, hours, minutes, startTime, endTime, keywords, period
     });
   }
   renderCalendar(currentYear, currentMonth);
@@ -567,12 +620,27 @@ function deleteEntry() {
   selectDay(selectedDay.day);
 }
 
-// Init
+// ---- init ----
 loadRecords();
 const now = new Date();
 currentYear = now.getFullYear();
 currentMonth = now.getMonth();
 
+// Build wheel items
+buildWheelItems(document.getElementById('wh-inner'), 24, false);
+buildWheelItems(document.getElementById('wm-inner'), 60, true);
+
+// Wheel scroll listeners
+['wh', 'wm'].forEach(id => {
+  document.getElementById(id).addEventListener('scroll', () => onWheelScroll(id), { passive: true });
+});
+
+// Time tab switching
+document.querySelectorAll('.time-tab').forEach(tab => {
+  tab.addEventListener('click', () => switchTimeTab(tab.dataset.tab));
+});
+
+// Call type buttons
 document.querySelectorAll('.type-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     selectedType = btn.dataset.type;
@@ -586,11 +654,6 @@ document.getElementById('period-toggle').addEventListener('click', () => {
   document.getElementById('period-toggle').classList.toggle('active', periodActive);
   calcCycleHint();
 });
-
-document.getElementById('start-time').addEventListener('input', onTimesChanged);
-document.getElementById('end-time').addEventListener('input', onTimesChanged);
-document.getElementById('hours').addEventListener('change', onDurationChanged);
-document.getElementById('minutes').addEventListener('change', onDurationChanged);
 
 document.getElementById('btn-save').addEventListener('click', saveEntry);
 document.getElementById('btn-delete').addEventListener('click', deleteEntry);
@@ -615,12 +678,8 @@ document.getElementById('today-btn').addEventListener('click', () => {
 });
 
 document.addEventListener('keydown', e => {
-  if (e.code === 'ArrowLeft' && e.ctrlKey) {
-    document.getElementById('prev-month').click();
-  }
-  if (e.code === 'ArrowRight' && e.ctrlKey) {
-    document.getElementById('next-month').click();
-  }
+  if (e.code === 'ArrowLeft' && e.ctrlKey) document.getElementById('prev-month').click();
+  if (e.code === 'ArrowRight' && e.ctrlKey) document.getElementById('next-month').click();
 });
 
 renderCalendar(currentYear, currentMonth);
