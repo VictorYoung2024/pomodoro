@@ -62,7 +62,7 @@
     aspect-ratio: 1; border-radius: 10px; background: var(--card);
     display: flex; flex-direction: column; align-items: center;
     justify-content: center; cursor: pointer; font-size: 13px;
-    transition: all 0.2s; position: relative;
+    transition: all 0.2s; position: relative; min-height: 0;
   }
   .day:hover { background: #3a1a58; }
   .day.selected { box-shadow: 0 0 0 2px var(--accent); }
@@ -89,12 +89,25 @@
   .type-btn.voice.active { border-color: var(--voice); color: var(--voice); background: #0d1a2a; }
   .type-btn.video.active { border-color: var(--video); color: var(--video); background: #2a1a0d; }
   .type-btn .icon { font-size: 22px; display: block; margin-bottom: 4px; }
-  .duration-input { display: flex; gap: 12px; justify-content: center; align-items: center; margin-bottom: 16px; }
+
+  .time-range { display: flex; gap: 10px; justify-content: center; align-items: center; margin-bottom: 12px; }
+  .time-field { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .time-field label { font-size: 11px; color: var(--muted); }
+  .time-field input[type="time"] {
+    background: #1a0a2a; color: #fff; border: 1px solid #4a2060;
+    padding: 8px 12px; border-radius: 8px; font-size: 18px; font-family: inherit;
+    width: 130px; text-align: center;
+  }
+  .time-field input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(1); }
+  .time-arrow { color: var(--muted); font-size: 14px; padding-top: 18px; }
+
+  .duration-input { display: flex; gap: 6px; justify-content: center; align-items: center; margin-bottom: 16px; }
   .duration-input label { font-size: 13px; color: var(--muted); }
   .duration-input select {
     background: #1a0a2a; color: #fff; border: 1px solid #4a2060;
-    padding: 8px 12px; border-radius: 8px; font-size: 16px; cursor: pointer;
+    padding: 6px 10px; border-radius: 8px; font-size: 15px; cursor: pointer;
   }
+
   .actions { display: flex; gap: 8px; justify-content: center; }
   .btn {
     padding: 10px 28px; border-radius: 20px; border: none; cursor: pointer;
@@ -105,7 +118,6 @@
   .btn-delete { background: transparent; color: #e57373; border: 1px solid #e57373; }
   .btn-delete:hover { background: #e5737320; }
   .btn-delete:disabled { opacity: 0.3; cursor: not-allowed; }
-  .empty-hint { font-size: 13px; color: var(--muted); padding: 20px 0; }
 </style>
 </head>
 <body>
@@ -143,14 +155,23 @@
         <span class="icon">📹</span>视频
       </button>
     </div>
+    <div class="time-range">
+      <div class="time-field">
+        <label>开始时间</label>
+        <input type="time" id="start-time">
+      </div>
+      <span class="time-arrow">→</span>
+      <div class="time-field">
+        <label>结束时间</label>
+        <input type="time" id="end-time">
+      </div>
+    </div>
     <div class="duration-input">
-      <label>通话时长</label>
-      <select id="hours">
-      </select>
-      <label>小时</label>
-      <select id="minutes">
-      </select>
-      <label>分钟</label>
+      <label>时长</label>
+      <select id="hours"></select>
+      <label>h</label>
+      <select id="minutes"></select>
+      <label>min</label>
     </div>
     <div class="actions">
       <button class="btn btn-save" id="btn-save">保存</button>
@@ -163,6 +184,7 @@
 const STORAGE_KEY = 'call-records';
 let currentYear, currentMonth, selectedDay, selectedType;
 let records = {};
+let timeChanging = false; // prevent recursive time/duration updates
 
 function loadRecords() {
   try { records = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
@@ -203,6 +225,29 @@ function formatDuration(h, m) {
   if (h === 0) return `${m}分`;
   if (m === 0) return `${h}h`;
   return `${h}h${m}分`;
+}
+
+// Time → duration: calculate hours/minutes from start/end time strings
+function timesToDuration(start, end) {
+  if (!start || !end) return null;
+  let [sh, sm] = start.split(':').map(Number);
+  let [eh, em] = end.split(':').map(Number);
+  let startMin = sh * 60 + sm;
+  let endMin = eh * 60 + em;
+  if (endMin <= startMin) endMin += 24 * 60; // overnight call
+  const totalMin = endMin - startMin;
+  return { hours: Math.floor(totalMin / 60), minutes: totalMin % 60 };
+}
+
+// Duration → time: set end time based on start + duration
+function durationToEndTime(start, hours, minutes) {
+  if (!start) return '';
+  let [sh, sm] = start.split(':').map(Number);
+  let totalMin = sh * 60 + sm + hours * 60 + minutes;
+  totalMin %= (24 * 60); // wrap around
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
 function calcMonthStats(y, m) {
@@ -276,6 +321,8 @@ function updateEditPanel() {
   const btnDelete = document.getElementById('btn-delete');
   const hoursSel = document.getElementById('hours');
   const minutesSel = document.getElementById('minutes');
+  const startInput = document.getElementById('start-time');
+  const endInput = document.getElementById('end-time');
   const typeBtns = document.querySelectorAll('.type-btn');
 
   if (!selectedDay) {
@@ -291,11 +338,15 @@ function updateEditPanel() {
   // Populate hour/minute options
   if (hoursSel.options.length === 0) {
     for (let i = 0; i <= 24; i++) hoursSel.add(new Option(i, i));
-    for (let i = 0; i <= 55; i += 5) minutesSel.add(new Option(i, i));
+    for (let i = 0; i <= 59; i++) minutesSel.add(new Option(String(i).padStart(2, '0'), i));
   }
 
+  timeChanging = true;
   hoursSel.value = data ? data.hours : 0;
   minutesSel.value = data ? data.minutes : 0;
+  startInput.value = data ? (data.startTime || '') : '';
+  endInput.value = data ? (data.endTime || '') : '';
+  timeChanging = false;
 
   typeBtns.forEach(b => {
     b.classList.toggle('active', b.dataset.type === selectedType);
@@ -313,15 +364,45 @@ function updateStats(y, m) {
   document.getElementById('love-score').textContent = `本月爱情度：${pts} 点`;
 }
 
+function onTimesChanged() {
+  if (timeChanging) return;
+  const start = document.getElementById('start-time').value;
+  const end = document.getElementById('end-time').value;
+  if (!start || !end) return;
+
+  const dur = timesToDuration(start, end);
+  if (dur) {
+    timeChanging = true;
+    document.getElementById('hours').value = dur.hours;
+    document.getElementById('minutes').value = dur.minutes;
+    timeChanging = false;
+  }
+}
+
+function onDurationChanged() {
+  if (timeChanging) return;
+  const start = document.getElementById('start-time').value;
+  if (!start) return;
+  const h = parseInt(document.getElementById('hours').value);
+  const m = parseInt(document.getElementById('minutes').value);
+
+  timeChanging = true;
+  document.getElementById('end-time').value = durationToEndTime(start, h, m);
+  timeChanging = false;
+}
+
 function saveEntry() {
   if (!selectedDay) return;
   const h = parseInt(document.getElementById('hours').value);
   const m = parseInt(document.getElementById('minutes').value);
+  const startTime = document.getElementById('start-time').value;
+  const endTime = document.getElementById('end-time').value;
+
   if (h === 0 && m === 0) {
     setDayData(selectedDay.year, selectedDay.month, selectedDay.day, null);
   } else {
     setDayData(selectedDay.year, selectedDay.month, selectedDay.day, {
-      type: selectedType, hours: h, minutes: m
+      type: selectedType, hours: h, minutes: m, startTime, endTime
     });
   }
   renderCalendar(currentYear, currentMonth);
@@ -349,6 +430,11 @@ document.querySelectorAll('.type-btn').forEach(btn => {
   });
 });
 
+document.getElementById('start-time').addEventListener('input', onTimesChanged);
+document.getElementById('end-time').addEventListener('input', onTimesChanged);
+document.getElementById('hours').addEventListener('change', onDurationChanged);
+document.getElementById('minutes').addEventListener('change', onDurationChanged);
+
 document.getElementById('btn-save').addEventListener('click', saveEntry);
 document.getElementById('btn-delete').addEventListener('click', deleteEntry);
 
@@ -371,7 +457,6 @@ document.getElementById('today-btn').addEventListener('click', () => {
   renderCalendar(currentYear, currentMonth);
 });
 
-// Keyboard shortcuts
 document.addEventListener('keydown', e => {
   if (e.code === 'ArrowLeft' && e.ctrlKey) {
     document.getElementById('prev-month').click();
