@@ -3,192 +3,385 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>番茄钟</title>
+<title>我们的电话时光</title>
 <style>
   :root {
-    --work: #e74c3c;
-    --short-break: #2ecc71;
-    --long-break: #3498db;
+    --bg: #1a0a1e;
+    --card: #2a1040;
+    --accent: #e91e63;
+    --voice: #64b5f6;
+    --video: #ff9800;
+    --love: #ff4081;
+    --text: #e0d0e8;
+    --muted: #806080;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    display: flex; justify-content: center; align-items: center;
-    min-height: 100vh; background: #1a1a2e;
-    transition: background 0.4s;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex; justify-content: center;
+    padding: 20px;
   }
-  .container { text-align: center; }
-  .timer-ring {
-    position: relative; width: 300px; height: 300px; margin: 0 auto 30px;
+  .app { width: 100%; max-width: 480px; }
+
+  /* Header */
+  .header {
+    text-align: center; padding: 20px 0;
+    background: linear-gradient(135deg, #1a0a1e 0%, #2a1040 50%, #1a0a1e 100%);
+    border-radius: 16px; margin-bottom: 16px;
   }
-  svg { transform: rotate(-90deg); }
-  .bg-circle { fill: none; stroke: #2d2d44; stroke-width: 8; }
-  .progress-circle {
-    fill: none; stroke: var(--work); stroke-width: 8; stroke-linecap: round;
-    stroke-dasharray: 880; stroke-dashoffset: 0;
-    transition: stroke-dashoffset 0.3s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.4s;
+  .header h1 { font-size: 22px; margin-bottom: 10px; }
+  .stats { display: flex; justify-content: center; gap: 20px; font-size: 13px; color: var(--muted); }
+  .stats strong { color: var(--accent); font-size: 16px; display: block; }
+  .love-meter { margin-top: 10px; font-size: 20px; }
+  .love-score { font-size: 13px; color: var(--muted); }
+
+  /* Month nav */
+  .month-nav {
+    display: flex; align-items: center; justify-content: center;
+    gap: 16px; margin-bottom: 12px; font-size: 16px; font-weight: 600;
   }
-  .time-display {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    font-size: 64px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums;
+  .month-nav button {
+    background: var(--card); border: none; color: var(--text);
+    width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+    font-size: 16px; transition: background 0.2s;
   }
-  .mode-tabs {
-    display: flex; gap: 8px; justify-content: center; margin-bottom: 24px;
+  .month-nav button:hover { background: #3a1a50; }
+  .today-btn {
+    background: var(--accent); border: none; color: #fff;
+    padding: 6px 14px; border-radius: 12px; cursor: pointer;
+    font-size: 12px; font-weight: 500;
   }
-  .mode-tab {
-    padding: 8px 18px; border-radius: 20px; border: none; cursor: pointer;
-    font-size: 14px; font-weight: 500; background: #2d2d44; color: #aaa;
+
+  /* Calendar grid */
+  .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .day {
+    aspect-ratio: 1; border-radius: 10px; background: var(--card);
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; cursor: pointer; font-size: 13px;
+    transition: all 0.2s; position: relative;
+  }
+  .day:hover { background: #3a1a58; }
+  .day.selected { box-shadow: 0 0 0 2px var(--accent); }
+  .day.today { border: 1px solid var(--accent); }
+  .day.empty { background: transparent; cursor: default; }
+  .day .date { font-weight: 600; }
+  .day .duration { font-size: 10px; color: var(--muted); margin-top: 1px; }
+  .day .hearts { font-size: 11px; line-height: 1; }
+  .day.has-call { background: #2a1450; }
+
+  /* Edit panel */
+  .edit-panel {
+    background: var(--card); border-radius: 16px; padding: 20px;
+    margin-top: 16px; text-align: center;
+  }
+  .edit-panel h3 { font-size: 14px; color: var(--muted); margin-bottom: 12px; }
+  .type-toggle { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; }
+  .type-btn {
+    flex: 1; max-width: 140px; padding: 10px; border-radius: 12px;
+    border: 2px solid transparent; cursor: pointer; font-size: 14px;
+    font-weight: 600; background: #1a0a2a; color: var(--muted);
     transition: all 0.2s;
   }
-  .mode-tab.active { background: var(--work); color: #fff; }
-  .controls { display: flex; gap: 12px; justify-content: center; }
-  .btn {
-    width: 52px; height: 52px; border-radius: 50%; border: none;
-    cursor: pointer; font-size: 20px; background: #2d2d44; color: #fff;
-    transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+  .type-btn.voice.active { border-color: var(--voice); color: var(--voice); background: #0d1a2a; }
+  .type-btn.video.active { border-color: var(--video); color: var(--video); background: #2a1a0d; }
+  .type-btn .icon { font-size: 22px; display: block; margin-bottom: 4px; }
+  .duration-input { display: flex; gap: 12px; justify-content: center; align-items: center; margin-bottom: 16px; }
+  .duration-input label { font-size: 13px; color: var(--muted); }
+  .duration-input select {
+    background: #1a0a2a; color: #fff; border: 1px solid #4a2060;
+    padding: 8px 12px; border-radius: 8px; font-size: 16px; cursor: pointer;
   }
-  .btn:hover { background: #3d3d5c; }
-  .btn-main { width: 60px; height: 60px; font-size: 24px; background: var(--work); }
-  .btn-main:hover { filter: brightness(1.15); }
-  .session-count { color: #666; font-size: 13px; margin-top: 24px; }
-  .session-count span { color: #aaa; }
+  .actions { display: flex; gap: 8px; justify-content: center; }
+  .btn {
+    padding: 10px 28px; border-radius: 20px; border: none; cursor: pointer;
+    font-size: 14px; font-weight: 600; transition: all 0.2s;
+  }
+  .btn-save { background: var(--accent); color: #fff; }
+  .btn-save:hover { filter: brightness(1.2); }
+  .btn-delete { background: transparent; color: #e57373; border: 1px solid #e57373; }
+  .btn-delete:hover { background: #e5737320; }
+  .btn-delete:disabled { opacity: 0.3; cursor: not-allowed; }
+  .empty-hint { font-size: 13px; color: var(--muted); padding: 20px 0; }
 </style>
 </head>
 <body>
-<div class="container">
-  <div class="timer-ring">
-    <svg width="300" height="300" viewBox="0 0 300 300">
-      <circle class="bg-circle" cx="150" cy="150" r="140"/>
-      <circle class="progress-circle" id="progress" cx="150" cy="150" r="140"
-              stroke-dasharray="880" stroke-dashoffset="0"/>
-    </svg>
-    <div class="time-display" id="time">25:00</div>
+<div class="app">
+  <div class="header">
+    <h1>💕 我们的电话时光</h1>
+    <div class="stats">
+      <div>通话天数<br><strong id="stat-days">0</strong></div>
+      <div>总时长<br><strong id="stat-hours">0h</strong></div>
+      <div>视频次数<br><strong id="stat-video">0</strong></div>
+    </div>
+    <div class="love-meter" id="love-meter">💔</div>
+    <div class="love-score" id="love-score">本月爱情度：0 点</div>
   </div>
 
-  <div class="mode-tabs">
-    <button class="mode-tab active" data-mode="work" data-min="25">专注</button>
-    <button class="mode-tab" data-mode="short" data-min="5">短休</button>
-    <button class="mode-tab" data-mode="long" data-min="15">长休</button>
+  <div class="month-nav">
+    <button id="prev-month">◀</button>
+    <span id="month-label">2026年5月</span>
+    <button id="next-month">▶</button>
+    <button class="today-btn" id="today-btn">今天</button>
   </div>
 
-  <div class="controls">
-    <button class="btn" id="reset" title="重置">↺</button>
-    <button class="btn btn-main" id="toggle" title="开始">▶</button>
-    <button class="btn" id="skip" title="跳过">⏭</button>
+  <div class="weekdays">
+    <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
   </div>
+  <div class="calendar" id="calendar"></div>
 
-  <div class="session-count" id="counter">今日完成：<span>0</span> 个番茄</div>
+  <div class="edit-panel" id="edit-panel">
+    <h3 id="edit-title">选择日期记录通话</h3>
+    <div class="type-toggle">
+      <button class="type-btn voice active" data-type="voice">
+        <span class="icon">📞</span>语音
+      </button>
+      <button class="type-btn video" data-type="video">
+        <span class="icon">📹</span>视频
+      </button>
+    </div>
+    <div class="duration-input">
+      <label>通话时长</label>
+      <select id="hours">
+      </select>
+      <label>小时</label>
+      <select id="minutes">
+      </select>
+      <label>分钟</label>
+    </div>
+    <div class="actions">
+      <button class="btn btn-save" id="btn-save">保存</button>
+      <button class="btn btn-delete" id="btn-delete" disabled>删除</button>
+    </div>
+  </div>
 </div>
 
-<audio id="alarm" preload="auto">
-  <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACAf39/f4B/f3+AgH9/f3+Af4B/gH+Af4B/gH+Af39/gH+Af4B/gH+Af39/f3+Af39/gH+Af39/f39/f39/f39/f39/f39/f39/gH+Af39/gH+Af4B/f3+Af39/f39/gH9/f4B/f3+Af39/f4B/f3+Af39/f39/f39/f39/f39/f39/f39/f4B/f3+Af39/gH+Af4B/gH+Af4B/gH+Af4B/gH+Af4B/gH+Af4B/gH+Af39/gH+Af4B/gH+Af39/f4B/f3+Af39/gH+Af4B/f3+Af39/f39/f39/f39/f39/f39/f39/gH9/f4B/f39/f39/f39/f4B/f3+Af4B/gH+Af4B/gH+Af4B/gH+Af4B/gH+Af4B/f3+Af39/f4B/f3+Af39/f4B/f3+Af39/gH+Af4B/f3+Af39/f39/f39/f4B/f3+Af39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f4B/f39/f39/f39/f39/f4B/f3+Af39/f4B/f3+Af4B/f3+Af39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f4B/f39/f4B/f39/f4B/f3+Af4B/f3+Af4B/gH+Af4B/gH+Af39/f39/f39/f39/f39/f39/f39/f39/f4B/f3+Af39/f4B/f3+Af39/f4B/f4B/f3+Af39/f4B/f3+Af39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f4B/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f4B/f39/f39/f39/f39/f4B/f39/f39/f4B/f4B/f39/f39/f4B/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f4B/f39/f39/f4B/f39/f4B/gH+Af39/f39/f39/f34A=" type="audio/wav">
-</audio>
-
 <script>
-const CIRCUMFERENCE = 2 * Math.PI * 140; // ~880
-const progress = document.getElementById('progress');
-const timeDisplay = document.getElementById('time');
-const toggleBtn = document.getElementById('toggle');
-const alarm = document.getElementById('alarm');
-const counter = document.querySelector('.session-count span');
+const STORAGE_KEY = 'call-records';
+let currentYear, currentMonth, selectedDay, selectedType;
+let records = {};
 
-let totalSeconds = 25 * 60;
-let remaining = totalSeconds;
-let interval = null;
-let currentMode = 'work';
-let sessions = 0;
+function loadRecords() {
+  try { records = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch { records = {}; }
+}
+function saveRecords() { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }
 
-const modeConfig = {
-  work: { minutes: 25, color: '#e74c3c' },
-  short: { minutes: 5, color: '#2ecc71' },
-  long: { minutes: 15, color: '#3498db' }
-};
-
-function formatTime(s) {
-  const m = Math.floor(s / 60);
-  const sec = s % 60;
-  return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+function monthKey(y, m) { return `${y}-${String(m + 1).padStart(2, '0')}`; }
+function dayData(y, m, d) {
+  const key = monthKey(y, m);
+  return (records[key] && records[key][String(d)]) || null;
+}
+function setDayData(y, m, d, data) {
+  const key = monthKey(y, m);
+  if (!records[key]) records[key] = {};
+  if (data === null) delete records[key][String(d)];
+  else records[key][String(d)] = data;
+  saveRecords();
 }
 
-function updateDisplay() {
-  timeDisplay.textContent = formatTime(remaining);
-  const offset = CIRCUMFERENCE * (1 - remaining / totalSeconds);
-  progress.style.strokeDashoffset = offset;
-  document.title = `${formatTime(remaining)} - ${currentMode === 'work' ? '专注' : '休息'}`;
+function lovePoints(data) {
+  if (!data) return 0;
+  const totalMin = data.hours * 60 + data.minutes;
+  return Math.round(totalMin * (data.type === 'video' ? 1.5 : 1));
 }
 
-function setMode(mode) {
-  currentMode = mode;
-  const cfg = modeConfig[mode];
-  totalSeconds = cfg.minutes * 60;
-  remaining = totalSeconds;
-  progress.style.stroke = cfg.color;
-  toggleBtn.style.background = cfg.color;
-  document.documentElement.style.setProperty('--work', cfg.color);
-  document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
-  document.querySelector(`[data-mode="${mode}"]`).classList.add('active');
-  stopTimer();
-  updateDisplay();
+function loveHearts(points) {
+  if (points >= 120) return '💖💖💖💖💖';
+  if (points >= 80) return '💖💖💖💖';
+  if (points >= 40) return '💖💖💖';
+  if (points >= 10) return '💖💖';
+  if (points >= 1) return '💖';
+  return '💔';
 }
 
-function stopTimer() {
-  clearInterval(interval);
-  interval = null;
-  toggleBtn.textContent = '▶';
+function formatDuration(h, m) {
+  if (h === 0 && m === 0) return '';
+  if (h === 0) return `${m}分`;
+  if (m === 0) return `${h}h`;
+  return `${h}h${m}分`;
 }
 
-function tick() {
-  remaining--;
-  if (remaining <= 0) {
-    stopTimer();
-    alarm.play();
-    if (currentMode === 'work') {
-      sessions++;
-      counter.textContent = sessions;
-    }
-    // Auto-switch: work → short break, breaks → work
-    setMode(currentMode === 'work' ? 'short' : 'work');
+function calcMonthStats(y, m) {
+  const key = monthKey(y, m);
+  const monthData = records[key] || {};
+  let totalMin = 0, days = 0, videoCount = 0, totalPoints = 0;
+  for (const [day, data] of Object.entries(monthData)) {
+    const min = data.hours * 60 + data.minutes;
+    if (min > 0) { days++; totalMin += min; totalPoints += lovePoints(data); }
+    if (data.type === 'video') videoCount++;
+  }
+  return { days, totalHours: (totalMin / 60).toFixed(1), videoCount, totalPoints };
+}
+
+function renderCalendar(y, m) {
+  const grid = document.getElementById('calendar');
+  const today = new Date();
+  const firstDay = new Date(y, m, 1).getDay();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+
+  grid.innerHTML = '';
+  for (let i = 0; i < firstDay; i++) {
+    grid.appendChild(createDayEl(null));
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const data = dayData(y, m, d);
+    const isToday = y === today.getFullYear() && m === today.getMonth() && d === today.getDate();
+    grid.appendChild(createDayEl(d, data, isToday));
+  }
+
+  document.getElementById('month-label').textContent = `${y}年${m + 1}月`;
+  updateStats(y, m);
+  updateEditPanel();
+}
+
+function createDayEl(day, data, isToday) {
+  const div = document.createElement('div');
+  if (day === null) { div.className = 'day empty'; return div; }
+
+  div.className = 'day' + (isToday ? ' today' : '') + (data ? ' has-call' : '');
+  div.innerHTML = `<div class="date">${day}</div>`;
+  if (data) {
+    const pts = lovePoints(data);
+    div.innerHTML += `<div class="duration">${data.type === 'video' ? '📹' : '📞'} ${formatDuration(data.hours, data.minutes)}</div>`;
+    div.innerHTML += `<div class="hearts">${loveHearts(pts)}</div>`;
+  }
+
+  if (day === selectedDay && currentYear === selectedDay?.year && currentMonth === selectedDay?.month) {
+    div.classList.add('selected');
+  }
+
+  div.addEventListener('click', () => selectDay(day));
+  return div;
+}
+
+function selectDay(day) {
+  selectedDay = { year: currentYear, month: currentMonth, day };
+  const data = dayData(currentYear, currentMonth, day);
+  selectedType = data ? data.type : 'voice';
+
+  document.querySelectorAll('.day').forEach(d => d.classList.remove('selected'));
+  document.querySelectorAll('.day:not(.empty)').forEach(d => {
+    if (parseInt(d.querySelector('.date')?.textContent) === day) d.classList.add('selected');
+  });
+
+  updateEditPanel();
+}
+
+function updateEditPanel() {
+  const title = document.getElementById('edit-title');
+  const btnDelete = document.getElementById('btn-delete');
+  const hoursSel = document.getElementById('hours');
+  const minutesSel = document.getElementById('minutes');
+  const typeBtns = document.querySelectorAll('.type-btn');
+
+  if (!selectedDay) {
+    title.textContent = '选择日期记录通话';
+    btnDelete.disabled = true;
     return;
   }
-  updateDisplay();
-}
 
-function toggle() {
-  if (interval) {
-    stopTimer();
-  } else {
-    interval = setInterval(tick, 1000);
-    toggleBtn.textContent = '⏸';
+  const data = dayData(selectedDay.year, selectedDay.month, selectedDay.day);
+  title.textContent = `${selectedDay.month + 1}月${selectedDay.day}日`;
+  btnDelete.disabled = !data;
+
+  // Populate hour/minute options
+  if (hoursSel.options.length === 0) {
+    for (let i = 0; i <= 24; i++) hoursSel.add(new Option(i, i));
+    for (let i = 0; i <= 55; i += 5) minutesSel.add(new Option(i, i));
   }
+
+  hoursSel.value = data ? data.hours : 0;
+  minutesSel.value = data ? data.minutes : 0;
+
+  typeBtns.forEach(b => {
+    b.classList.toggle('active', b.dataset.type === selectedType);
+  });
 }
 
-function reset() {
-  stopTimer();
-  remaining = totalSeconds;
-  updateDisplay();
+function updateStats(y, m) {
+  const stats = calcMonthStats(y, m);
+  document.getElementById('stat-days').textContent = stats.days;
+  document.getElementById('stat-hours').textContent = stats.totalHours + 'h';
+  document.getElementById('stat-video').textContent = stats.videoCount;
+
+  const pts = stats.totalPoints;
+  document.getElementById('love-meter').textContent = loveHearts(pts);
+  document.getElementById('love-score').textContent = `本月爱情度：${pts} 点`;
 }
 
-function skip() {
-  stopTimer();
-  const next = currentMode === 'work' ? 'short' : 'work';
-  setMode(next);
+function saveEntry() {
+  if (!selectedDay) return;
+  const h = parseInt(document.getElementById('hours').value);
+  const m = parseInt(document.getElementById('minutes').value);
+  if (h === 0 && m === 0) {
+    setDayData(selectedDay.year, selectedDay.month, selectedDay.day, null);
+  } else {
+    setDayData(selectedDay.year, selectedDay.month, selectedDay.day, {
+      type: selectedType, hours: h, minutes: m
+    });
+  }
+  renderCalendar(currentYear, currentMonth);
+  selectDay(selectedDay.day);
 }
 
-document.querySelectorAll('.mode-tab').forEach(tab => {
-  tab.addEventListener('click', () => setMode(tab.dataset.mode));
+function deleteEntry() {
+  if (!selectedDay) return;
+  setDayData(selectedDay.year, selectedDay.month, selectedDay.day, null);
+  renderCalendar(currentYear, currentMonth);
+  selectDay(selectedDay.day);
+}
+
+// Init
+loadRecords();
+const now = new Date();
+currentYear = now.getFullYear();
+currentMonth = now.getMonth();
+
+document.querySelectorAll('.type-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    selectedType = btn.dataset.type;
+    document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
 });
-toggleBtn.addEventListener('click', toggle);
-document.getElementById('reset').addEventListener('click', reset);
-document.getElementById('skip').addEventListener('click', skip);
+
+document.getElementById('btn-save').addEventListener('click', saveEntry);
+document.getElementById('btn-delete').addEventListener('click', deleteEntry);
+
+document.getElementById('prev-month').addEventListener('click', () => {
+  currentMonth--; if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+  selectedDay = null;
+  renderCalendar(currentYear, currentMonth);
+});
+
+document.getElementById('next-month').addEventListener('click', () => {
+  currentMonth++; if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+  selectedDay = null;
+  renderCalendar(currentYear, currentMonth);
+});
+
+document.getElementById('today-btn').addEventListener('click', () => {
+  currentYear = now.getFullYear();
+  currentMonth = now.getMonth();
+  selectedDay = null;
+  renderCalendar(currentYear, currentMonth);
+});
 
 // Keyboard shortcuts
 document.addEventListener('keydown', e => {
-  if (e.code === 'Space') { e.preventDefault(); toggle(); }
-  if (e.code === 'KeyR') reset();
-  if (e.code === 'KeyS') skip();
+  if (e.code === 'ArrowLeft' && e.ctrlKey) {
+    document.getElementById('prev-month').click();
+  }
+  if (e.code === 'ArrowRight' && e.ctrlKey) {
+    document.getElementById('next-month').click();
+  }
 });
 
-updateDisplay();
+renderCalendar(currentYear, currentMonth);
 </script>
 </body>
 </html>
