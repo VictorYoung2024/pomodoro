@@ -12,6 +12,7 @@
     --voice: #64b5f6;
     --video: #ff9800;
     --love: #ff4081;
+    --period: #ff4757;
     --text: #e0d0e8;
     --muted: #806080;
   }
@@ -26,7 +27,6 @@
   }
   .app { width: 100%; max-width: 480px; }
 
-  /* Header */
   .header {
     text-align: center; padding: 20px 0;
     background: linear-gradient(135deg, #1a0a1e 0%, #2a1040 50%, #1a0a1e 100%);
@@ -38,7 +38,6 @@
   .love-meter { margin-top: 10px; font-size: 20px; }
   .love-score { font-size: 13px; color: var(--muted); }
 
-  /* Month nav */
   .month-nav {
     display: flex; align-items: center; justify-content: center;
     gap: 16px; margin-bottom: 12px; font-size: 16px; font-weight: 600;
@@ -55,31 +54,37 @@
     font-size: 12px; font-weight: 500;
   }
 
-  /* Calendar grid */
   .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
   .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
   .day {
     aspect-ratio: 1; border-radius: 10px; background: var(--card);
     display: flex; flex-direction: column; align-items: center;
     justify-content: center; cursor: pointer; font-size: 13px;
-    transition: all 0.2s; position: relative; min-height: 0;
+    transition: all 0.2s; position: relative; overflow: hidden;
   }
   .day:hover { background: #3a1a58; }
   .day.selected { box-shadow: 0 0 0 2px var(--accent); }
   .day.today { border: 1px solid var(--accent); }
   .day.empty { background: transparent; cursor: default; }
-  .day .date { font-weight: 600; }
-  .day .duration { font-size: 10px; color: var(--muted); margin-top: 1px; }
-  .day .hearts { font-size: 11px; line-height: 1; }
+  .day .date { font-weight: 600; position: relative; z-index: 1; }
+  .day .duration { font-size: 10px; color: var(--muted); margin-top: 1px; position: relative; z-index: 1; }
+  .day .hearts { font-size: 11px; line-height: 1; position: relative; z-index: 1; }
+  .day .keywords { font-size: 9px; color: #b090c0; margin-top: 1px; position: relative; z-index: 1; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px; }
   .day.has-call { background: #2a1450; }
+  .day.period { box-shadow: inset 0 0 0 2px var(--period); }
+  .day .period-dot {
+    position: absolute; top: 3px; right: 3px; width: 8px; height: 8px;
+    border-radius: 50%; background: var(--period); z-index: 2;
+  }
 
-  /* Edit panel */
   .edit-panel {
     background: var(--card); border-radius: 16px; padding: 20px;
     margin-top: 16px; text-align: center;
   }
   .edit-panel h3 { font-size: 14px; color: var(--muted); margin-bottom: 12px; }
-  .type-toggle { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; }
+  .edit-section { margin-bottom: 14px; }
+
+  .type-toggle { display: flex; gap: 8px; justify-content: center; }
   .type-btn {
     flex: 1; max-width: 140px; padding: 10px; border-radius: 12px;
     border: 2px solid transparent; cursor: pointer; font-size: 14px;
@@ -90,7 +95,7 @@
   .type-btn.video.active { border-color: var(--video); color: var(--video); background: #2a1a0d; }
   .type-btn .icon { font-size: 22px; display: block; margin-bottom: 4px; }
 
-  .time-range { display: flex; gap: 10px; justify-content: center; align-items: center; margin-bottom: 12px; }
+  .time-range { display: flex; gap: 10px; justify-content: center; align-items: center; }
   .time-field { display: flex; flex-direction: column; align-items: center; gap: 4px; }
   .time-field label { font-size: 11px; color: var(--muted); }
   .time-field input[type="time"] {
@@ -101,12 +106,35 @@
   .time-field input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(1); }
   .time-arrow { color: var(--muted); font-size: 14px; padding-top: 18px; }
 
-  .duration-input { display: flex; gap: 6px; justify-content: center; align-items: center; margin-bottom: 16px; }
+  .duration-input { display: flex; gap: 6px; justify-content: center; align-items: center; }
   .duration-input label { font-size: 13px; color: var(--muted); }
   .duration-input select {
     background: #1a0a2a; color: #fff; border: 1px solid #4a2060;
     padding: 6px 10px; border-radius: 8px; font-size: 15px; cursor: pointer;
   }
+
+  .keyword-input {
+    width: 100%; background: #1a0a2a; color: #fff; border: 1px solid #4a2060;
+    padding: 10px 14px; border-radius: 10px; font-size: 14px; font-family: inherit;
+    text-align: center; outline: none;
+  }
+  .keyword-input:focus { border-color: var(--accent); }
+  .keyword-input::placeholder { color: #604070; }
+
+  .period-row { display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .period-row label { font-size: 13px; color: var(--muted); cursor: pointer; }
+  .period-toggle {
+    width: 48px; height: 28px; border-radius: 14px; border: none;
+    background: #3a2050; cursor: pointer; position: relative;
+    transition: background 0.2s;
+  }
+  .period-toggle::after {
+    content: ''; position: absolute; top: 3px; left: 3px;
+    width: 22px; height: 22px; border-radius: 50%; background: #806080;
+    transition: all 0.2s;
+  }
+  .period-toggle.active { background: var(--period); }
+  .period-toggle.active::after { left: 23px; background: #fff; }
 
   .actions { display: flex; gap: 8px; justify-content: center; }
   .btn {
@@ -118,6 +146,8 @@
   .btn-delete { background: transparent; color: #e57373; border: 1px solid #e57373; }
   .btn-delete:hover { background: #e5737320; }
   .btn-delete:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .cycle-hint { font-size: 11px; color: var(--muted); margin-top: 6px; }
 </style>
 </head>
 <body>
@@ -147,7 +177,8 @@
 
   <div class="edit-panel" id="edit-panel">
     <h3 id="edit-title">选择日期记录通话</h3>
-    <div class="type-toggle">
+
+    <div class="edit-section type-toggle">
       <button class="type-btn voice active" data-type="voice">
         <span class="icon">📞</span>语音
       </button>
@@ -155,7 +186,8 @@
         <span class="icon">📹</span>视频
       </button>
     </div>
-    <div class="time-range">
+
+    <div class="edit-section time-range">
       <div class="time-field">
         <label>开始时间</label>
         <input type="time" id="start-time">
@@ -166,25 +198,39 @@
         <input type="time" id="end-time">
       </div>
     </div>
-    <div class="duration-input">
+
+    <div class="edit-section duration-input">
       <label>时长</label>
       <select id="hours"></select>
       <label>h</label>
       <select id="minutes"></select>
       <label>min</label>
     </div>
-    <div class="actions">
-      <button class="btn btn-save" id="btn-save">保存</button>
-      <button class="btn btn-delete" id="btn-delete" disabled>删除</button>
+
+    <div class="edit-section">
+      <input type="text" class="keyword-input" id="keywords" placeholder="今日关键词，用逗号分隔（如：约会,看电影）">
     </div>
+
+    <div class="edit-section period-row">
+      <button class="period-toggle" id="period-toggle"></button>
+      <label for="period-toggle">经期日</label>
+    </div>
+
+    <div class="edit-section actions">
+      <button class="btn btn-save" id="btn-save">保存</button>
+      <button class="btn btn-delete" id="btn-delete" disabled>清空</button>
+    </div>
+
+    <div class="cycle-hint" id="cycle-hint"></div>
   </div>
 </div>
 
 <script>
 const STORAGE_KEY = 'call-records';
-let currentYear, currentMonth, selectedDay, selectedType;
+let currentYear, currentMonth, selectedDay, selectedType, selectedPeriod;
 let records = {};
-let timeChanging = false; // prevent recursive time/duration updates
+let timeChanging = false;
+let periodActive = false;
 
 function loadRecords() {
   try { records = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
@@ -207,7 +253,7 @@ function setDayData(y, m, d, data) {
 
 function lovePoints(data) {
   if (!data) return 0;
-  const totalMin = data.hours * 60 + data.minutes;
+  const totalMin = (data.hours || 0) * 60 + (data.minutes || 0);
   return Math.round(totalMin * (data.type === 'video' ? 1.5 : 1));
 }
 
@@ -221,45 +267,118 @@ function loveHearts(points) {
 }
 
 function formatDuration(h, m) {
+  h = h || 0; m = m || 0;
   if (h === 0 && m === 0) return '';
   if (h === 0) return `${m}分`;
   if (m === 0) return `${h}h`;
   return `${h}h${m}分`;
 }
 
-// Time → duration: calculate hours/minutes from start/end time strings
 function timesToDuration(start, end) {
   if (!start || !end) return null;
   let [sh, sm] = start.split(':').map(Number);
   let [eh, em] = end.split(':').map(Number);
   let startMin = sh * 60 + sm;
   let endMin = eh * 60 + em;
-  if (endMin <= startMin) endMin += 24 * 60; // overnight call
+  if (endMin <= startMin) endMin += 24 * 60;
   const totalMin = endMin - startMin;
   return { hours: Math.floor(totalMin / 60), minutes: totalMin % 60 };
 }
 
-// Duration → time: set end time based on start + duration
 function durationToEndTime(start, hours, minutes) {
   if (!start) return '';
   let [sh, sm] = start.split(':').map(Number);
-  let totalMin = sh * 60 + sm + hours * 60 + minutes;
-  totalMin %= (24 * 60); // wrap around
+  let totalMin = sh * 60 + sm + (hours || 0) * 60 + (minutes || 0);
+  totalMin %= (24 * 60);
   const h = Math.floor(totalMin / 60);
   const m = totalMin % 60;
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
+// Period cycle helpers
+function getPeriodDays(y, m) {
+  const key = monthKey(y, m);
+  const monthData = records[key] || {};
+  const days = [];
+  for (const [day, data] of Object.entries(monthData)) {
+    if (data.period) days.push(parseInt(day));
+  }
+  days.sort((a, b) => a - b);
+  return days;
+}
+
+function getRecentPeriodStart() {
+  // Find the most recent period start day, scanning from current month backwards
+  let y = currentYear, m = currentMonth;
+  for (let i = 0; i < 6; i++) {
+    const days = getPeriodDays(y, m);
+    if (days.length > 0) {
+      // Find first period day of a consecutive streak
+      // Actually, just find the first period day in that month as an estimate
+      return { year: y, month: m, day: days[0] };
+    }
+    m--;
+    if (m < 0) { m = 11; y--; }
+  }
+  return null;
+}
+
+function calcCycleHint() {
+  if (!selectedDay) { document.getElementById('cycle-hint').textContent = ''; return; }
+
+  const data = dayData(selectedDay.year, selectedDay.month, selectedDay.day);
+  const isPeriod = !!(data && data.period);
+
+  if (!isPeriod && !periodActive) {
+    // If not a period day and toggle off, find nearest period for reference
+    const recent = getRecentPeriodStart();
+    if (recent) {
+      const recentDate = new Date(recent.year, recent.month, recent.day);
+      const selDate = new Date(selectedDay.year, selectedDay.month, selectedDay.day);
+      const diffDays = Math.round((selDate - recentDate) / (1000 * 60 * 60 * 24));
+      if (diffDays >= 0 && diffDays <= 35) {
+        document.getElementById('cycle-hint').textContent = `距上次经期第 ${diffDays + 1} 天`;
+        return;
+      }
+    }
+    document.getElementById('cycle-hint').textContent = '';
+  } else if (periodActive) {
+    // Count consecutive period days in current month
+    const periodDays = getPeriodDays(selectedDay.year, selectedDay.month);
+    // Count the current selected day if it's toggled on but not yet saved
+    let count = periodDays.length;
+    if (!periodDays.includes(selectedDay.day)) count++;
+
+    // Find streaks that include this day
+    const allDays = [...new Set([...periodDays, selectedDay.day])].sort((a, b) => a - b);
+    const idx = allDays.indexOf(selectedDay.day);
+    let streakStart = idx, streakEnd = idx;
+    while (streakStart > 0 && allDays[streakStart - 1] === allDays[streakStart] - 1) streakStart--;
+    while (streakEnd < allDays.length - 1 && allDays[streakEnd + 1] === allDays[streakEnd] + 1) streakEnd++;
+    const streakLen = streakEnd - streakStart + 1;
+
+    if (streakLen === 1) {
+      document.getElementById('cycle-hint').textContent = `经期第 1 天`;
+    } else {
+      const dayInStreak = idx - streakStart + 1;
+      document.getElementById('cycle-hint').textContent = `经期第 ${dayInStreak} 天（共 ${streakLen} 天）`;
+    }
+  } else {
+    document.getElementById('cycle-hint').textContent = '';
+  }
+}
+
 function calcMonthStats(y, m) {
   const key = monthKey(y, m);
   const monthData = records[key] || {};
-  let totalMin = 0, days = 0, videoCount = 0, totalPoints = 0;
+  let totalMin = 0, days = 0, videoCount = 0, totalPoints = 0, periodCount = 0;
   for (const [day, data] of Object.entries(monthData)) {
-    const min = data.hours * 60 + data.minutes;
+    const min = (data.hours || 0) * 60 + (data.minutes || 0);
     if (min > 0) { days++; totalMin += min; totalPoints += lovePoints(data); }
     if (data.type === 'video') videoCount++;
+    if (data.period) periodCount++;
   }
-  return { days, totalHours: (totalMin / 60).toFixed(1), videoCount, totalPoints };
+  return { days, totalHours: (totalMin / 60).toFixed(1), videoCount, totalPoints, periodCount };
 }
 
 function renderCalendar(y, m) {
@@ -287,13 +406,32 @@ function createDayEl(day, data, isToday) {
   const div = document.createElement('div');
   if (day === null) { div.className = 'day empty'; return div; }
 
-  div.className = 'day' + (isToday ? ' today' : '') + (data ? ' has-call' : '');
-  div.innerHTML = `<div class="date">${day}</div>`;
+  let cls = 'day';
+  if (isToday) cls += ' today';
+  if (data) {
+    if ((data.hours || 0) * 60 + (data.minutes || 0) > 0) cls += ' has-call';
+    if (data.period) cls += ' period';
+  }
+  div.className = cls;
+
+  let html = `<div class="date">${day}</div>`;
   if (data) {
     const pts = lovePoints(data);
-    div.innerHTML += `<div class="duration">${data.type === 'video' ? '📹' : '📞'} ${formatDuration(data.hours, data.minutes)}</div>`;
-    div.innerHTML += `<div class="hearts">${loveHearts(pts)}</div>`;
+    const dur = formatDuration(data.hours, data.minutes);
+    if (dur) {
+      html += `<div class="duration">${data.type === 'video' ? '📹' : '📞'} ${dur}</div>`;
+      html += `<div class="hearts">${loveHearts(pts)}</div>`;
+    }
+    if (data.keywords) {
+      const kw = data.keywords.split(/[,，\s]+/).filter(Boolean).slice(0, 2).join('·');
+      html += `<div class="keywords">${kw}</div>`;
+    }
+    if (data.period) {
+      html += `<div class="period-dot"></div>`;
+    }
   }
+
+  div.innerHTML = html;
 
   if (day === selectedDay && currentYear === selectedDay?.year && currentMonth === selectedDay?.month) {
     div.classList.add('selected');
@@ -306,7 +444,8 @@ function createDayEl(day, data, isToday) {
 function selectDay(day) {
   selectedDay = { year: currentYear, month: currentMonth, day };
   const data = dayData(currentYear, currentMonth, day);
-  selectedType = data ? data.type : 'voice';
+  selectedType = data && data.type ? data.type : 'voice';
+  periodActive = !!(data && data.period);
 
   document.querySelectorAll('.day').forEach(d => d.classList.remove('selected'));
   document.querySelectorAll('.day:not(.empty)').forEach(d => {
@@ -323,11 +462,16 @@ function updateEditPanel() {
   const minutesSel = document.getElementById('minutes');
   const startInput = document.getElementById('start-time');
   const endInput = document.getElementById('end-time');
+  const keywordsInput = document.getElementById('keywords');
+  const periodToggle = document.getElementById('period-toggle');
   const typeBtns = document.querySelectorAll('.type-btn');
 
   if (!selectedDay) {
     title.textContent = '选择日期记录通话';
     btnDelete.disabled = true;
+    keywordsInput.value = '';
+    periodToggle.classList.remove('active');
+    document.getElementById('cycle-hint').textContent = '';
     return;
   }
 
@@ -335,22 +479,26 @@ function updateEditPanel() {
   title.textContent = `${selectedDay.month + 1}月${selectedDay.day}日`;
   btnDelete.disabled = !data;
 
-  // Populate hour/minute options
   if (hoursSel.options.length === 0) {
     for (let i = 0; i <= 24; i++) hoursSel.add(new Option(i, i));
     for (let i = 0; i <= 59; i++) minutesSel.add(new Option(String(i).padStart(2, '0'), i));
   }
 
   timeChanging = true;
-  hoursSel.value = data ? data.hours : 0;
-  minutesSel.value = data ? data.minutes : 0;
+  hoursSel.value = data ? (data.hours || 0) : 0;
+  minutesSel.value = data ? (data.minutes || 0) : 0;
   startInput.value = data ? (data.startTime || '') : '';
   endInput.value = data ? (data.endTime || '') : '';
+  keywordsInput.value = data ? (data.keywords || '') : '';
+  periodActive = !!(data && data.period);
+  periodToggle.classList.toggle('active', periodActive);
   timeChanging = false;
 
   typeBtns.forEach(b => {
     b.classList.toggle('active', b.dataset.type === selectedType);
   });
+
+  calcCycleHint();
 }
 
 function updateStats(y, m) {
@@ -361,7 +509,9 @@ function updateStats(y, m) {
 
   const pts = stats.totalPoints;
   document.getElementById('love-meter').textContent = loveHearts(pts);
-  document.getElementById('love-score').textContent = `本月爱情度：${pts} 点`;
+  document.getElementById('love-score').textContent = stats.periodCount > 0
+    ? `本月爱情度：${pts} 点 · 🩸${stats.periodCount}天`
+    : `本月爱情度：${pts} 点`;
 }
 
 function onTimesChanged() {
@@ -369,7 +519,6 @@ function onTimesChanged() {
   const start = document.getElementById('start-time').value;
   const end = document.getElementById('end-time').value;
   if (!start || !end) return;
-
   const dur = timesToDuration(start, end);
   if (dur) {
     timeChanging = true;
@@ -383,9 +532,8 @@ function onDurationChanged() {
   if (timeChanging) return;
   const start = document.getElementById('start-time').value;
   if (!start) return;
-  const h = parseInt(document.getElementById('hours').value);
-  const m = parseInt(document.getElementById('minutes').value);
-
+  const h = parseInt(document.getElementById('hours').value) || 0;
+  const m = parseInt(document.getElementById('minutes').value) || 0;
   timeChanging = true;
   document.getElementById('end-time').value = durationToEndTime(start, h, m);
   timeChanging = false;
@@ -393,16 +541,19 @@ function onDurationChanged() {
 
 function saveEntry() {
   if (!selectedDay) return;
-  const h = parseInt(document.getElementById('hours').value);
-  const m = parseInt(document.getElementById('minutes').value);
+  const h = parseInt(document.getElementById('hours').value) || 0;
+  const m = parseInt(document.getElementById('minutes').value) || 0;
   const startTime = document.getElementById('start-time').value;
   const endTime = document.getElementById('end-time').value;
+  const keywords = document.getElementById('keywords').value.trim();
+  const period = periodActive;
 
-  if (h === 0 && m === 0) {
+  // Only delete if truly nothing
+  if (h === 0 && m === 0 && !keywords && !period) {
     setDayData(selectedDay.year, selectedDay.month, selectedDay.day, null);
   } else {
     setDayData(selectedDay.year, selectedDay.month, selectedDay.day, {
-      type: selectedType, hours: h, minutes: m, startTime, endTime
+      type: selectedType, hours: h, minutes: m, startTime, endTime, keywords, period
     });
   }
   renderCalendar(currentYear, currentMonth);
@@ -428,6 +579,12 @@ document.querySelectorAll('.type-btn').forEach(btn => {
     document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
   });
+});
+
+document.getElementById('period-toggle').addEventListener('click', () => {
+  periodActive = !periodActive;
+  document.getElementById('period-toggle').classList.toggle('active', periodActive);
+  calcCycleHint();
 });
 
 document.getElementById('start-time').addEventListener('input', onTimesChanged);
